@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Milk Account - Legger</title>
+  <style>
+    :root {
+      --primary: #1976d2;
+      --success: #2e7d32;
+      --danger: #c62828;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --border: #dcdcdc;
+      --text: #212121;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 14px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { font-size: 1.3rem; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    h2 { font-size: 1rem; margin-bottom: 10px; color: #444; }
+    .subtitle { font-size: 0.8rem; color: #666; margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .full-width { grid-column: span 2; }
+    label { font-size: 0.75rem; font-weight: bold; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; }
+    input, button, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.95rem; }
+    button { cursor: pointer; border: none; font-weight: 600; }
+    .btn-primary { background: var(--primary); color: white; margin-top: 6px; }
+    .btn-credit { background: var(--success); color: white; margin-top: 6px; }
+    .btn-whatsapp { background: #25d366; color: white; }
+    .btn-png { background: #673ab7; color: white; }
+    .btn-secondary { background: #455a64; color: white; }
+    .btn-clear { background: #757575; color: white; font-size: 0.8rem; padding: 6px; width: auto; }
+    .balance-card { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
+    .bal-box { padding: 10px; border-radius: 8px; }
+    .bal-box div:first-child { font-size: 0.75rem; color: #555; }
+    .bal-box div:last-child { font-size: 1.1rem; font-weight: bold; margin-top: 4px; }
+    .bg-milk { background: #e3f2fd; color: #0d47a1; }
+    .bg-paid { background: #e8f5e9; color: var(--success); }
+    .bg-due { background: #ffebee; color: var(--danger); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
+    th, td { padding: 8px 4px; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #555; }
+    .tag { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .tag-delivery { background: #e3f2fd; color: #0d47a1; }
+    .tag-payment { background: #e8f5e9; color: var(--success); }
+    .person-badge { font-weight: 600; color: #37474f; }
+    .delete-btn { background: none; border: none; color: #999; cursor: pointer; font-size: 1.1rem; width: auto; padding: 0 4px; }
+    .delete-btn:hover { color: var(--danger); }
+    .receipt-row { display: flex; gap: 8px; margin-top: 8px; }
+    .vendor-select-container { display: flex; gap: 6px; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header & Balance Overview -->
+  <div class="card">
+    <h1>Milk Account - Legger</h1>
+    <div class="subtitle">Daily Milk Delivery & Payment Record</div>
+    <div class="balance-card">
+      <div class="bal-box bg-milk">
+        <div>Total Milk Cost</div>
+        <div>₹ <span id="statMilkCost">0</span></div>
+      </div>
+      <div class="bal-box bg-paid">
+        <div>Total Paid</div>
+        <div>₹ <span id="statPaid">0</span></div>
+      </div>
+      <div class="bal-box bg-due">
+        <div>Net Balance Due</div>
+        <div>₹ <span id="statDue">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form 1: Daily Milk Delivery Entry -->
+  <div class="card">
+    <h2>1. Daily Delivery Entry</h2>
+    <div class="grid">
+      <div>
+        <label>Delivery Date</label>
+        <input type="date" id="milkDate" />
+      </div>
+      <div>
+        <label>Delivered By</label>
+        <div class="vendor-select-container">
+          <select id="milkVendor" onchange="persistFormSettings()"></select>
+          <button type="button" style="width: auto; padding: 0 10px; background: #37474f; color: white;" onclick="addNewVendor('milkVendor')">+</button>
+        </div>
+      </div>
+      <div>
+        <label>Quantity (L)</label>
+        <input type="number" id="liters" value="3" step="0.25" oninput="updateMilkCalc(); persistFormSettings();" />
+      </div>
+      <div>
+        <label>Rate / L (₹)</label>
+        <input type="number" id="rate" value="40" step="1" oninput="updateMilkCalc(); persistFormSettings();" />
+      </div>
+      <div class="full-width">
+        <label>Calculated Amount</label>
+        <input type="text" id="milkCost" value="₹ 120" readonly style="background:#fafafa;" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="addMilkEntry()">Record Delivery</button>
+  </div>
+
+  <!-- Form 2: Payment / Clear Dues Entry -->
+  <div class="card">
+    <h2>2. Clear Dues / Pay Milkman</h2>
+    <div class="grid">
+      <div>
+        <label>Payment Date</label>
+        <input type="date" id="payDate" />
+      </div>
+      <div>
+        <label>Paid To (Milkman)</label>
+        <div class="vendor-select-container">
+          <select id="payVendor" onchange="persistFormSettings()"></select>
+          <button type="button" style="width: auto; padding: 0 10px; background: #37474f; color: white;" onclick="addNewVendor('payVendor')">+</button>
+        </div>
+      </div>
+      <div>
+        <label>Amount Paid (₹)</label>
+        <input type="number" id="paidAmount" placeholder="e.g. 500" />
+      </div>
+      <div>
+        <label>Payment Mode / Note</label>
+        <input type="text" id="payNote" placeholder="UPI, Cash, Cleared 3 days" />
+      </div>
+    </div>
+    <button class="btn-credit" onclick="addPaymentEntry()">Record Payment</button>
+  </div>
+
+  <!-- Share & Export Statements -->
+  <div class="card">
+    <h2>3. Send / Export Statement</h2>
+    <label>Recipient Phone Number (Auto-saved)</label>
+    <div class="receipt-row">
+      <input type="tel" id="whatsappPhone" placeholder="Enter phone number (e.g. 919876543210)" oninput="persistPhoneNumber()" />
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-whatsapp" onclick="sendReceipt('latest')">WhatsApp Last Entry</button>
+      <button class="btn-whatsapp" onclick="sendReceipt('summary')">WhatsApp Text Log</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-png" onclick="exportStatementPNG(false)">Save Table PNG</button>
+      <button class="btn-png" onclick="exportStatementPNG(true)">Share Table PNG</button>
+    </div>
+  </div>
+
+  <!-- Data Backup / Restore -->
+  <div class="card">
+    <h2>4. Backup & Restore Data</h2>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="exportBackupJSON()">Export Backup (.json)</button>
+      <label class="btn-secondary" style="display: flex; align-items: center; justify-content: center; margin-top: 0; cursor: pointer;">
+        Import Backup (.json)
+        <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importBackupJSON(event)" />
+      </label>
+    </div>
+  </div>
+
+  <!-- Master Chronological Timeline -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h2>Master Legger History</h2>
+      <button class="btn-clear" onclick="clearData()">Reset All</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Delivered / Paid To</th>
+          <th>Type</th>
+          <th>Details</th>
+          <th>Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Hidden Canvas for PNG Statement Generation -->
+<canvas id="statementCanvas" style="display: none;"></canvas>
+
+<script>
+  const STORAGE_KEY = 'milk_account_legger_v5';
+  const VENDORS_KEY = 'milk_legger_vendors_v5';
+  const PHONE_KEY = 'milk_saved_phone_number';
+  const SETTINGS_KEY = 'milk_form_settings_v1';
+
+  let loadedVendors = JSON.parse(localStorage.getItem(VENDORS_KEY)) || ['Guddu', 'Riyazuddin'];
+  let vendors = loadedVendors.filter(v => v !== 'Milk Account - Legger');
+  if (vendors.length === 0) vendors = ['Guddu', 'Riyazuddin'];
+  localStorage.setItem(VENDORS_KEY, JSON.stringify(vendors));
+
+  function loadAndMigrate() {
+    let saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved && Array.isArray(saved)) return saved;
+    return [];
+  }
+
+  let ledger = loadAndMigrate();
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  document.getElementById('milkDate').value = todayStr;
+  document.getElementById('payDate').value = todayStr;
+
+  const savedPhone = localStorage.getItem(PHONE_KEY) || '';
+  document.getElementById('whatsappPhone').value = savedPhone;
+
+  function persistPhoneNumber() {
+    const val = document.getElementById('whatsappPhone').value.trim();
+    localStorage.setItem(PHONE_KEY, val);
+  }
+
+  function persistFormSettings() {
+    const settings = {
+      liters: document.getElementById('liters').value,
+      rate: document.getElementById('rate').value,
+      milkVendor: document.getElementById('milkVendor').value,
+      payVendor: document.getElementById('payVendor').value
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function loadFormSettings() {
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (settings) {
+      if (settings.liters) document.getElementById('liters').value = settings.liters;
+      if (settings.rate) document.getElementById('rate').value = settings.rate;
+      if (settings.milkVendor && vendors.includes(settings.milkVendor)) {
+        document.getElementById('milkVendor').value = settings.milkVendor;
+      }
+      if (settings.payVendor && vendors.includes(settings.payVendor)) {
+        document.getElementById('payVendor').value = settings.payVendor;
+      }
+    }
+    updateMilkCalc();
+  }
+
+  function populateDropdowns() {
+    ['milkVendor', 'payVendor'].forEach(id => {
+      const el = document.getElementById(id);
+      const prevVal = el.value;
+      el.innerHTML = '';
+      vendors.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        el.appendChild(opt);
+      });
+      if (vendors.includes(prevVal)) {
+        el.value = prevVal;
+      }
+    });
+  }
+
+  function addNewVendor(targetDropdownId) {
+    const name = prompt('Enter new milkman name:');
+    if (name && name.trim()) {
+      const clean = name.trim();
+      if (!vendors.includes(clean)) {
+        vendors.push(clean);
+        localStorage.setItem(VENDORS_KEY, JSON.stringify(vendors));
+        populateDropdowns();
+        document.getElementById(targetDropdownId).value = clean;
+        persistFormSettings();
+      }
+    }
+  }
+
+  function updateMilkCalc() {
+    const l = parseFloat(document.getElementById('liters').value) || 0;
+    const r = parseFloat(document.getElementById('rate').value) || 0;
+    document.getElementById('milkCost').value = `₹ ${(l * r).toFixed(2)}`;
+  }
+
+  function addMilkEntry() {
+    const date = document.getElementById('milkDate').value;
+    const person = document.getElementById('milkVendor').value;
+    const liters = parseFloat(document.getElementById('liters').value) || 0;
+    const rate = parseFloat(document.getElementById('rate').value) || 0;
+    const amount = liters * rate;
+
+    if (!date || liters <= 0 || rate <= 0) {
+      alert('Please enter valid date, quantity, and rate.');
+      return;
+    }
+
+    ledger.unshift({
+      id: Date.now(),
+      type: 'MILK',
+      date,
+      person,
+      details: `${liters}L @ ₹${rate}/L`,
+      amount
+    });
+
+    persistFormSettings();
+    saveAndRender();
+  }
+
+  function addPaymentEntry() {
+    const date = document.getElementById('payDate').value;
+    const person = document.getElementById('payVendor').value;
+    const amount = parseFloat(document.getElementById('paidAmount').value) || 0;
+    const note = document.getElementById('payNote').value.trim() || 'Paid Dues';
+
+    if (!date || amount <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+
+    ledger.unshift({
+      id: Date.now(),
+      type: 'PAYMENT',
+      date,
+      person,
+      details: note,
+      amount
+    });
+
+    document.getElementById('paidAmount').value = '';
+    document.getElementById('payNote').value = '';
+    persistFormSettings();
+    saveAndRender();
+  }
+
+  function deleteItem(id) {
+    ledger = ledger.filter(item => item.id !== id);
+    saveAndRender();
+  }
+
+  function saveAndRender() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+    render();
+  }
+
+  function render() {
+    const tbody = document.getElementById('ledgerBody');
+    tbody.innerHTML = '';
+
+    let totalMilk = 0;
+    let totalPaid = 0;
+
+    ledger.forEach(item => {
+      const isMilk = item.type === 'MILK';
+      if (isMilk) {
+        totalMilk += item.amount;
+      } else {
+        totalPaid += item.amount;
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.date}</td>
+        <td class="person-badge">${item.person}</td>
+        <td><span class="tag ${isMilk ? 'tag-delivery' : 'tag-payment'}">${isMilk ? 'Delivery' : 'Payment'}</span></td>
+        <td>${item.details}</td>
+        <td style="font-weight:bold; color:${isMilk ? 'var(--danger)' : 'var(--success)'}">
+          ${isMilk ? '+' : '-'} ₹${item.amount.toFixed(2)}
+        </td>
+        <td><button class="delete-btn" onclick="deleteItem(${item.id})">×</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    const netDue = totalMilk - totalPaid;
+    document.getElementById('statMilkCost').textContent = totalMilk.toFixed(2);
+    document.getElementById('statPaid').textContent = totalPaid.toFixed(2);
+    document.getElementById('statDue').textContent = netDue.toFixed(2);
+  }
+
+  // --- Export / Import JSON Mechanism ---
+  function exportBackupJSON() {
+    const exportData = {
+      version: 5,
+      exportDate: new Date().toISOString(),
+      vendors: vendors,
+      phone: localStorage.getItem(PHONE_KEY) || '',
+      formSettings: JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {},
+      ledger: ledger
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `milk_account_backup_${todayStr}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function importBackupJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data.ledger)) {
+          ledger = data.ledger;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
+        }
+        if (Array.isArray(data.vendors)) {
+          vendors = data.vendors;
+          localStorage.setItem(VENDORS_KEY, JSON.stringify(vendors));
+          populateDropdowns();
+        }
+        if (data.phone) {
+          localStorage.setItem(PHONE_KEY, data.phone);
+          document.getElementById('whatsappPhone').value = data.phone;
+        }
+        if (data.formSettings) {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(data.formSettings));
+          loadFormSettings();
+        }
+        render();
+        alert('Statement, settings, and entries restored successfully!');
+      } catch (err) {
+        alert('Failed to import: Invalid JSON file format.');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // --- HTML5 Canvas PNG Statement Generator (4x High Resolution) ---
+  function drawStatementTablePNG() {
+    const canvas = document.getElementById('statementCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scale = 4; // 4x Resolution multiplier
+    const baseWidth = 850;
+    const headerHeight = 180;
+    const rowHeight = 44;
+    const summaryHeight = 150;
+    const items = [...ledger].reverse();
+    const baseHeight = headerHeight + (items.length * rowHeight) + summaryHeight + 40;
+
+    canvas.width = baseWidth * scale;
+    canvas.height = baseHeight * scale;
+
+    ctx.scale(scale, scale);
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+    // Header Area
+    ctx.fillStyle = '#1976d2';
+    ctx.fillRect(0, 0, baseWidth, 110);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 26px system-ui, sans-serif';
+    ctx.fillText('MILK ACCOUNT STATEMENT', 30, 48);
+
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.fillStyle = '#e3f2fd';
+    ctx.fillText(`Generated Date: ${todayStr}`, 30, 80);
+
+    // Summary Stat Boxes
+    let totalMilk = 0;
+    let totalPaid = 0;
+    items.forEach(i => {
+      if (i.type === 'MILK') totalMilk += i.amount;
+      else totalPaid += i.amount;
+    });
+    const netDue = totalMilk - totalPaid;
+
+    ctx.fillStyle = '#f4f6f8';
+    ctx.fillRect(20, 125, 810, 45);
+
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.fillStyle = '#37474f';
+    ctx.fillText('DATE', 35, 152);
+    ctx.fillText('PARTY / MILKMAN', 150, 152);
+    ctx.fillText('TYPE', 350, 152);
+    ctx.fillText('PARTICULARS', 460, 152);
+    ctx.fillText('AMOUNT', 730, 152);
+
+    let y = 195;
+    items.forEach((item, index) => {
+      if (index % 2 === 1) {
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(20, y - 28, 810, rowHeight);
+      }
+
+      ctx.font = '13px system-ui, sans-serif';
+      ctx.fillStyle = '#212121';
+      ctx.fillText(item.date, 35, y);
+      ctx.fillText(item.person, 150, y);
+
+      const isMilk = item.type === 'MILK';
+      ctx.fillStyle = isMilk ? '#0d47a1' : '#2e7d32';
+      ctx.fillText(isMilk ? 'Delivery' : 'Payment', 350, y);
+
+      ctx.fillStyle = '#555555';
+      ctx.fillText(item.details, 460, y);
+
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.fillStyle = isMilk ? '#c62828' : '#2e7d32';
+      ctx.fillText(`${isMilk ? '+' : '-'} ₹${item.amount.toFixed(2)}`, 720, y);
+
+      // Bottom Row Divider
+      ctx.strokeStyle = '#eeeeee';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(20, y + 16);
+      ctx.lineTo(830, y + 16);
+      ctx.stroke();
+
+      y += rowHeight;
+    });
+
+    // Summary Box
+    y += 20;
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(20, y, 810, 110);
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(20, y, 810, 110);
+
+    ctx.fillStyle = '#333333';
+    ctx.font = 'bold 14px system-ui, sans-serif';
+    ctx.fillText(`Total Milk Charges: ₹${totalMilk.toFixed(2)}`, 50, y + 40);
+    ctx.fillText(`Total Amount Paid:  ₹${totalPaid.toFixed(2)}`, 50, y + 75);
+
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.fillStyle = netDue > 0 ? '#c62828' : '#2e7d32';
+    ctx.fillText(`Net Due: ₹${netDue.toFixed(2)}`, 550, y + 60);
+
+    return canvas;
+  }
+
+  async function exportStatementPNG(triggerShare) {
+    if (ledger.length === 0) {
+      alert('No ledger history to generate image.');
+      return;
+    }
+
+    const canvas = drawStatementTablePNG();
+
+    if (triggerShare && navigator.canShare) {
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `Milk_Statement_${todayStr}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'Milk Account Statement',
+              text: 'Here is the detailed statement table.',
+              files: [file]
+            });
+            return;
+          } catch (e) {
+            // Cancelled or unsupported fallback
+          }
+        }
+        downloadCanvas(canvas);
+      });
+    } else {
+      downloadCanvas(canvas);
+    }
+  }
+
+  function downloadCanvas(canvas) {
+    const link = document.createElement('a');
+    link.download = `Milk_Statement_${todayStr}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // --- WhatsApp Text Generator ---
+  function sendReceipt(format) {
+    if (ledger.length === 0) {
+      alert('No ledger history available.');
+      return;
+    }
+
+    persistPhoneNumber();
+    const phone = document.getElementById('whatsappPhone').value.replace(/[^0-9]/g, '');
+
+    let totalMilk = 0;
+    let totalPaid = 0;
+    let totalLiters = 0;
+
+    ledger.forEach(i => {
+      if (i.type === 'MILK') {
+        totalMilk += i.amount;
+        const match = i.details.match(/([\d.]+)L/);
+        if (match) totalLiters += parseFloat(match[1]) || 0;
+      } else {
+        totalPaid += i.amount;
+      }
+    });
+
+    const netDue = totalMilk - totalPaid;
+    let msg = '';
+
+    if (format === 'latest') {
+      const item = ledger[0];
+      if (item.type === 'PAYMENT') {
+        msg = `*MILK ACCOUNT - LEGGER (PAYMENT RECEIPT)*%0A` +
+              `----------------------------------------%0A` +
+              `*Date:* ${item.date}%0A` +
+              `*Paid To:* ${item.person}%0A` +
+              `*Amount Credited:* ₹${item.amount.toFixed(2)}%0A` +
+              `*Note / Remark:* ${item.details}%0A` +
+              `----------------------------------------%0A` +
+              `*Remaining Balance Due:* ₹${netDue.toFixed(2)}`;
+      } else {
+        msg = `*MILK ACCOUNT - LEGGER (DELIVERY LOG)*%0A` +
+              `----------------------------------------%0A` +
+              `*Date:* ${item.date}%0A` +
+              `*Delivered By:* ${item.person}%0A` +
+              `*Quantity & Rate:* ${item.details}%0A` +
+              `*Day Total:* ₹${item.amount.toFixed(2)}%0A` +
+              `----------------------------------------%0A` +
+              `*Total Balance Due:* ₹${netDue.toFixed(2)}`;
+      }
+    } else {
+      let chronological = [...ledger].reverse();
+
+      msg = `*MILK ACCOUNT - DETAILED STATEMENT*%0A` +
+            `========================================%0A` +
+            `*ITEMIZED TRANSACTION HISTORY:*%0A` +
+            `----------------------------------------%0A`;
+
+      chronological.forEach((entry, idx) => {
+        const isMilk = entry.type === 'MILK';
+        const typeLabel = isMilk ? '🥛 Delivery' : '💵 Payment';
+        const sign = isMilk ? '(+)' : '(-)';
+        msg += `${idx + 1}. *${entry.date}* | ${typeLabel}%0A` +
+               `   • Name: ${entry.person}%0A` +
+               `   • Info: ${entry.details}%0A` +
+               `   • Amount: ${sign} ₹${entry.amount.toFixed(2)}%0A%0A`;
+      });
+
+      msg += `========================================%0A` +
+             `*ACCOUNT SUMMARY*%0A` +
+             `----------------------------------------%0A` +
+             `*Total Milk Delivered:* ${totalLiters.toFixed(2)} Liters%0A` +
+             `*Total Delivery Cost:* ₹${totalMilk.toFixed(2)}%0A` +
+             `*Total Amount Paid:* ₹${totalPaid.toFixed(2)}%0A` +
+             `----------------------------------------%0A` +
+             `*NET OUTSTANDING BALANCE: ₹${netDue.toFixed(2)}*`;
+    }
+
+    const link = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+    window.open(link, '_blank');
+  }
+
+  function clearData() {
+    if (confirm('Are you sure you want to reset all records in Milk Account - Legger?')) {
+      ledger = [];
+      saveAndRender();
+    }
+  }
+
+  populateDropdowns();
+  loadFormSettings();
+  render();
+</script>
+
+</body>
+</html>
